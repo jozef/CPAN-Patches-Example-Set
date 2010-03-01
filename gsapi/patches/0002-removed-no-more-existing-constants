@@ -1,0 +1,71 @@
+Description: The test fails because the Ghostscript API
+ underwent some changes, but the XS did not keep up.
+Author: Jozef Kutej <jkutej@cpan.org>
+
+diff -Naur a/GSAPI.pm b/GSAPI.pm
+--- a/GSAPI.pm	2010-02-23 13:58:08.000000000 +0100
++++ b/GSAPI.pm	2010-02-23 14:03:27.000000000 +0100
+@@ -62,9 +62,6 @@
+     e_Info
+     e_InterpreterExit
+     e_NeedInput
+-    e_NeedStderr
+-    e_NeedStdin
+-    e_NeedStdout
+     e_Quit
+     e_RemapColor
+     e_VMerror
+@@ -98,7 +95,6 @@
+     e_unknownerror
+     e_unmatchedmark
+     e_unregistered
+-    gs_error_interrupt	
+ ) ] );
+ 
+ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'const'} } );
+diff -Naur a/Makefile.PL b/Makefile.PL
+--- a/Makefile.PL	2010-02-23 13:58:08.000000000 +0100
++++ b/Makefile.PL	2010-02-23 14:02:51.000000000 +0100
+@@ -62,8 +62,8 @@
+          DISPLAY_VERSION_MAJOR DISPLAY_VERSION_MINOR 
+ 
+          e_ExecStackUnderflow
+-         e_Fatal e_Info e_InterpreterExit e_NeedInput e_NeedStderr
+-         e_NeedStdin e_NeedStdout e_Quit e_RemapColor e_VMerror
++         e_Fatal e_Info e_InterpreterExit e_NeedInput
++         e_Quit e_RemapColor e_VMerror
+          e_VMreclaim e_configurationerror e_dictfull
+          e_dictstackoverflow e_dictstackunderflow e_execstackoverflow
+          e_interrupt e_invalidaccess e_invalidcontext e_invalidexit
+@@ -72,7 +72,7 @@
+          e_stackoverflow e_stackunderflow e_syntaxerror e_timeout
+          e_typecheck e_undefined e_undefinedfilename
+          e_undefinedresource e_undefinedresult e_unknownerror
+-         e_unmatchedmark e_unregistered gs_error_interrupt), 
++         e_unmatchedmark e_unregistered), 
+ 
+         # The following are enums, which would fail the #ifdef check
+         # so we assume they are allways present, with macro=>1
+diff -Naur a/t/10_constant.t b/t/10_constant.t
+--- a/t/10_constant.t	2010-02-23 13:58:08.000000000 +0100
++++ b/t/10_constant.t	2010-02-23 14:00:21.000000000 +0100
+@@ -18,8 +18,8 @@
+     DISPLAY_NATIVE_565 DISPLAY_TOPFIRST DISPLAY_UNUSED_FIRST
+     DISPLAY_UNUSED_LAST DISPLAY_VERSION_MAJOR DISPLAY_VERSION_MINOR
+     e_ExecStackUnderflow e_Fatal
+-    e_Info e_InterpreterExit e_NeedInput e_NeedStderr e_NeedStdin
+-    e_NeedStdout e_Quit e_RemapColor e_VMerror e_VMreclaim
++    e_Info e_InterpreterExit e_NeedInput
++    e_Quit e_RemapColor e_VMerror e_VMreclaim
+     e_configurationerror e_dictfull e_dictstackoverflow
+     e_dictstackunderflow e_execstackoverflow e_interrupt e_invalidaccess
+     e_invalidcontext e_invalidexit e_invalidfileaccess e_invalidfont
+@@ -27,7 +27,7 @@
+     e_rangecheck e_stackoverflow e_stackunderflow e_syntaxerror e_timeout
+     e_typecheck e_undefined e_undefinedfilename e_undefinedresource
+     e_undefinedresult e_unknownerror e_unmatchedmark e_unregistered
+-    gs_error_interrupt)) {
++    )) {
+   next if (eval "my \$a = GSAPI::$constname(); 1");
+   if ($@ =~ /^Your vendor has not defined Errors macro $constname/) {
+     diag( "pass: $@" );

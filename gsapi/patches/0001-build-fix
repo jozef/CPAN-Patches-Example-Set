@@ -1,0 +1,199 @@
+Description: The make step fails because the Ghostscript API
+ underwent some changes, but the XS did not keep up.
+Author: Lars Dɪᴇᴄᴋᴏᴡ 迪拉斯 <daxim@cpan.org>
+
+diff --git a/GSAPI.xs b/GSAPI.xs
+index d62a7f7..3ded95b 100644
+--- a/GSAPI.xs
++++ b/GSAPI.xs
+@@ -10,7 +10,7 @@
+ 
+ #include "const-c.inc"
+ 
+-typedef gs_main_instance *GSAPI__instance;
++typedef void *GSAPI__instance;
+ 
+ #ifndef DEBUG
+ #define DEBUG 0
+@@ -68,7 +68,7 @@ image_new(void *handle, void *device )
+     return img;
+ }
+ 
+-static void 
++static void
+ image_free( void *handle, void *device )
+ {
+     IMAGE *img, *prev=NULL;
+@@ -108,7 +108,7 @@ run_cb( int idx, const char *msg, int msglen)
+   if(cnt != 1)
+     croak("run_cb: function should return one argument");
+ 
+-        rc = POPi; 
++        rc = POPi;
+ 
+     PUTBACK; FREETMPS; LEAVE;
+     return rc;
+@@ -135,7 +135,7 @@ run_stdin( void *caller_handle, char *buf, int msglen)
+     SPAGAIN;
+     if(cnt != 1)
+         croak("run_stdin: function should return one argument");
+-    
++
+         sv = POPs;
+         p = SvPV(sv, len);
+         if(len > msglen)
+@@ -193,12 +193,12 @@ static int display_update(void *handle, void *device, int x, int y,
+ #define CB_SUFFIX PUTBACK; FREETMPS; LEAVE;
+ 
+ /* Call the display callback w/o any params beyond the "normal" 2 */
+-static int 
++static int
+ display_0( const char *name, void *handle, void *device)
+ {
+     CB_PREFIX;
+ 
+-    if(DEBUG) 
++    if(DEBUG)
+         warn( "name=%s", name );
+     XPUSHs(sv_2mortal(newSVpvn( name, strlen( name ) )));
+     XPUSHs(sv_2mortal(newSVuv((unsigned int)handle)));
+@@ -223,7 +223,7 @@ display_open(void *handle, void *device)
+ 
+ /* Device is about to be closed. */
+ /* Device will not be closed until this function returns. */
+-static int 
++static int
+ display_preclose(void *handle, void *device)
+ {
+     IMAGE *image = image_find( handle, device );
+@@ -233,7 +233,7 @@ display_preclose(void *handle, void *device)
+ 
+ /* Device has been closed. */
+ /* This is the last event from this device. */
+-static int 
++static int
+ display_close(void *handle, void *device)
+ {
+     int rv = display_0( "display_close", handle, device );
+@@ -244,7 +244,7 @@ display_close(void *handle, void *device)
+ /* Device is about to be resized. */
+ /* Resize will only occur if this function returns 0. */
+ /* raster is byte count of a row. */
+-static int 
++static int
+ display_presize(void *handle, void *device,
+                 int width, int height, int raster, unsigned int format)
+ {
+@@ -269,9 +269,9 @@ display_presize(void *handle, void *device,
+ 
+ /* Device has been resized. */
+ /* New pointer to raster returned in pimage */
+-static int 
++static int
+ display_size(void *handle, void *device,
+-        int width, int height, int raster, unsigned int format, 
++        int width, int height, int raster, unsigned int format,
+         unsigned char *pimage)
+ {
+     const char *name = "display_size";
+@@ -302,7 +302,7 @@ display_size(void *handle, void *device,
+ 
+ /* showpage */
+ /* If you want to pause on showpage, then don't return immediately */
+-static int 
++static int
+ display_page(void *handle, void *device, int copies, int flush)
+ {
+     const char *name = "display_page";
+@@ -325,7 +325,7 @@ display_page(void *handle, void *device, int copies, int flush)
+ }
+ 
+ /* flushpage */
+-static int 
++static int
+ display_sync(void *handle, void *device)
+ {
+     return display_0( "display_sync", handle, device );
+@@ -338,7 +338,7 @@ display_sync(void *handle, void *device)
+  * progressive update of the display.
+  * This function pointer may be set to NULL if not required.
+  */
+-static int 
++static int
+ display_update(void *handle, void *device,
+     int x, int y, int w, int h)
+ {
+@@ -369,8 +369,8 @@ display_update(void *handle, void *device,
+ }
+ 
+ /* Allocate memory for bitmap */
+-static void *display_memalloc(void *handle, void *device, 
+-                        unsigned long size) 
++static void *display_memalloc(void *handle, void *device,
++                        unsigned long size)
+ {
+     void *mem;
+     if(DEBUG) warn( "memalloc %i", size );
+@@ -380,7 +380,7 @@ static void *display_memalloc(void *handle, void *device,
+ }
+ 
+ /* Free memory for bitmap */
+-static int 
++static int
+ display_memfree(void *handle, void *device, void *mem )
+ {
+     if(DEBUG) warn( "memfree %x", mem );
+@@ -410,7 +410,7 @@ display_callback display_cb = {
+ 
+ 
+ 
+-MODULE = GSAPI		PACKAGE = GSAPI		
++MODULE = GSAPI		PACKAGE = GSAPI
+ 
+ 
+ INCLUDE: const-xs.inc
+@@ -432,7 +432,7 @@ GSAPI::instance
+ new_instance()
+   PROTOTYPE:
+   PREINIT:
+-      gs_main_instance *inst = 0;
++      void *inst = 0;
+   CODE:
+        gsapi_new_instance(&inst, 0); // we don't need to check rc.
+        RETVAL = inst;
+@@ -445,7 +445,7 @@ delete_instance(inst)
+    PROTOTYPE: $
+    CODE:
+         gsapi_delete_instance(inst);
+-        
++
+ 
+ IV
+ set_stdio(inst, Fstdin, Fstdout, Fstderr)
+@@ -467,7 +467,7 @@ set_stdio(inst, Fstdin, Fstdout, Fstderr)
+         RETVAL = gsapi_set_stdio(inst, run_stdin, run_stdout, run_stderr);
+     OUTPUT:
+         RETVAL
+-        
++
+ IV
+ set_display_callback(inst, Fdisplay)
+         GSAPI::instance inst
+@@ -481,7 +481,7 @@ set_display_callback(inst, Fdisplay)
+         RETVAL
+ 
+ 
+-        
++
+ IV
+ init_with_args(inst, ...)
+         GSAPI::instance inst
+@@ -500,7 +500,7 @@ init_with_args(inst, ...)
+         Safefree( argv );
+ OUTPUT:
+         RETVAL
+-        
++
+ IV
+ exit(inst)
+         GSAPI::instance inst
