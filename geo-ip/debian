@@ -1,0 +1,3 @@
+Build-Depends-Indep: libgeoip-dev
+Depends: libgeoip1
+

@@ -1,0 +1,3 @@
+Build-Depends: libkakasi2-dev
+Depends: libkakasi2
+

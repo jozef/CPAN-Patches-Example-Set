@@ -1,0 +1,4 @@
+Build-Depends:
+Build-Depends-Indep: libgs-dev, ghostscript
+Depends: ghostscript
+X: 1
